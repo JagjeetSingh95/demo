@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <link rel="stylesheet" href="main.css">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.2.0/dist/leaflet.css">
+  <title>岐阜市の保育所マップ｜保育園探すなら保活広場</title>
+  <meta name="description" content="全国の保育園情報をまとめて地図で調べれるサイト">
+  <meta property="og:title" content="保活広場" />
+  <meta property="og:description" content="全国の保育園情報をまとめて地図で調べれるサイト" />
+  <meta property="og:url" content="https://hokatsupark.com/">
+  <meta property="og:image" content="https://tender-babbage-af210d.netlify.com/img/logotate.png" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:site" content="@hokatsupark" />
+  <script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script>
+    (adsbygoogle = window.adsbygoogle || []).push({
+      google_ad_client: "ca-pub-4754846686872982",
+      enable_page_level_ads: true
+    });
+  </script>
+</head>
+
+<body>
+  <script>
+    // ServiceWorker登録：https://developers.google.com/web/fundamentals/primers/service-workers/?hl=ja
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').then(function (registration) {
+        // console.log('ServiceWorker registration successful with scope: ', registration.scope);
+      }).catch(function (err) {
+        // console.log('ServiceWorker registration failed: ', err);
+      });
+    }
+  </script>
+  <div class="nav">
+    <ul>
+      <a href="/"><img class="logo" src="/img/logo.jpg"></img></a>
+      <li><a href="/">Home</a></li>
+    </ul>
+  </div>
+  <div class="container" id="app">
+    <div>
+      <h2>岐阜市の保育所を探す</h2>
+      <span class="breadcrumb"><a href="/">Home</a></span>
+      <span class="breadcrumb"><a href="/gifu/">岐阜県</a></span>
+      <span class="breadcrumb">岐阜市</span>
+      <script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+      <!-- リンクユニット保活 -->
+      <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-4754846686872982" data-ad-slot="3296655213"
+        data-ad-format="link" data-full-width-responsive="true"></ins>
+      <script>
+        (adsbygoogle = window.adsbygoogle || []).push({});
+      </script>
+      <div class="share">
+        <a class="twitter icon-twitter" href="http://twitter.com/share?url=https://www.hokatsupark.com/gifu/21201/&text=保活広場&hashtags=保活"
+          target="_blank">Twitter</a>
+        <a class="facebook icon-facebook" href="http://twitter.com/share?url=https://www.hokatsupark.com/gifu/21201/"
+          target="_blank">Facebook</a>
+        <a class="line icon-line" href="http://twitter.com/share?url=https://www.hokatsupark.com/gifu/21201/" target="_blank">LINE</a>
+      </div>
+      <div class="intro">
+        <img src="/img/icon1.svg" alt="認可保育園"></img><span>認可保育園</span>
+        <img src="/img/icon2.svg" alt="認定こども園"></img><span>認定こども園</span>
+        <img src="/img/icon3.svg" alt="認可外保育施設"></img><span>認可外保育施設</span>
+        <img src="/img/icon4.svg" alt="その他"></img><span>その他</span>
+      </div>
+      <div>
+        <div class="map" id="map"></div>
+      </div>
+    </div>
+    <div class=" col-md-12  map-list">
+      <ul>
+        <li v-for="layer in layers" :key="layer.id">
+          <label class="form-check-label">
+            <input class="form-check-input" type="checkbox" v-model="layer.active" @change="layerChanged(layer.id, layer.active)" />{{
+            layer.name }}
+          </label>
+        </li>
+      </ul>
+      <ul class="list">
+        <li v-for="option in options" :key="option.id" v-if="option.id <= 4">
+          <label class="form-check-label">
+            <input class="form-check-input" type="checkbox" v-model="option.active" @change="onOptionChange(option.name, option.active)" />{{
+            option.name }}
+          </label>
+        </li>
+      </ul>
+      <ul class="list">
+        <li v-for="option in options" :key="option.id" v-if="option.id > 4 && option.id <= 6">
+          <label class="form-check-label">
+            <input class="form-check-input" type="checkbox" v-model="option.active" @change="onOptionChange(option.name, option.active)" />{{
+            option.name }}
+          </label>
+        </li>
+      </ul>
+      <ul class="list">
+        <li v-for="option in options" :key="option.id" v-if="option.id > 6">
+          <label class="form-check-label">
+            <input class="form-check-input" type="checkbox" v-model="option.active" @change="onOptionChange(option.name, option.active)" />お気に入り
+          </label>
+        </li>
+      </ul>
+    </div>
+
+    <div v-for="layer in layers">
+      <div v-if="layer.active == true">
+        <h2>{{layer.name}}</h2>
+        <div v-for="item in list">
+          <!-- <div v-if ="item.type == layer.name"> -->
+          <h3 :id="item.id" class="inline">{{item.name}}</h3>
+          <div :class="{'active1' : item['延長保育'] == 1, 'inactive' : item['延長保育'] == 0}">延長</div>
+          <div :class="{'active1' : item['一時保育'] == 1, 'inactive' : item['一時保育'] == 0}">一時</div>
+          <div :class="{'active1' : item['休日保育'] == 1, 'inactive' : item['休日保育'] == 0}">休日</div>
+          <div :class="{'active1' : item['夜間保育'] == 1, 'inactive' : item['夜間保育'] == 0}">夜間</div>
+          <div :class="{'active1' : item['病児保育'] == 1, 'inactive' : item['病児保育'] == 0}">病児</div>
+          <div :class="{'active1' : item['病児保育'] == 1, 'inactive' : item['病児保育'] == 0}">病後児</div>
+          <div class="fav">
+              <img  v-if="item['favourite'] == 1" src="/img/favolite1.svg" />
+              <img v-else src="/img/favolite2.svg" />
+          </div>
+          <div class="info">住所:{{item.adress}}</div>
+          <div class="info">アクセス:{{item.access}}</div>
+          <div class="info">電話番号:{{item.phone}}</div>
+          <div class="info" v-if="item['dayEnd'].length === 0">時間:{{item.dayStart}}から{{item.dayEnd}}</div>
+          <div class="info" v-if="item['url'].length === 0"></div>
+          <div v-else><a :href="item.url"><button class="map-btn">公式サイト</button></a></div>
+          <!-- </div> -->
+        </div>
+      </div>
+    </div>
+    <script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+    <!-- 保活広場レクタングル -->
+    <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-4754846686872982" data-ad-slot="5625227661"
+      data-ad-format="auto" data-full-width-responsive="true"></ins>
+    <script>
+      (adsbygoogle = window.adsbygoogle || []).push({});
+    </script>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.5.17/vue.js"></script>
+  <script src="https://unpkg.com/leaflet@1.2.0/dist/leaflet.js"></script>
+  <script>
+    new Vue({
+      el: '#app',
+      data: {
+        map: null,
+        tileLayer: null,
+        layers: [],
+        list: [],
+        img: '',
+        options: [{
+          id: 1,
+          name: '延長保育',
+          active: false
+        },
+        {
+          id: 2,
+          name: '一時保育',
+          active: false
+        },
+        {
+          id: 3,
+          name: '休日保育',
+          active: false
+        },
+        {
+          id: 4,
+          name: '夜間保育',
+          active: false
+        },
+        {
+          id: 5,
+          name: '病児保育',
+          active: false
+        },
+        {
+          id: 6,
+          name: '病後児保育',
+          active: false
+        },
+        {
+          id: 7,
+          name: 'favourite',
+          active: false
+        }
+        ],
+      },
+      mounted() {
+        fetch('http://localhost:8082/school.json').then((res) => res.json()).then(res => {
+          const data = res;
+          const newData = data.map(layer => {
+            const features = layer.features.map(feature => {
+              const name = JSON.parse(localStorage.getItem('name')) || '';
+              const favs = name.split(',');
+              const isFav = favs.find(fav => fav == feature.name);
+              let icon = '';
+              switch (feature.type) {
+                case '認可保育所':
+                  icon = 'icon1'
+                  break;
+                case '認定こども園':
+                  icon = 'icon2'
+                  break;
+                case '認可外保育施設':
+                  icon = 'icon3'
+                  break;
+                default:
+                  icon = 'icon4'
+                  break;
+              }
+              return {
+                ...feature,
+                favourite: isFav ? 1 : 0,
+                icon
+              }
+            });
+            return {
+              ...layer,
+              features
+            }
+          });
+          this.layers = newData;
+          this.initMap();
+          this.initLayers();
+          this.layers.forEach(layer => {
+            this.layerChanged(layer.id, layer.active)
+          })
+        });
+      },
+      methods: {
+        layerChanged(layerId, active) {
+          // console.log(layerId,active,"layerChanged")
+          let filteredResults = [];
+          const layer = this.layers.find(layer => {
+            // console.log(layer,"laerfind")
+            return layer.id === layerId});
+          // console.log(layer,"layer")
+          layer.features.forEach((feature,index) => {
+            const filteredOptions = this.options.filter(option => {
+              return option.active});
+          
+            const matchedFilters = {};
+            if (!active) {
+              feature.leafletObject.removeFrom(this.map);
+             this.list.splice(index, 1)
+            } else {
+              if (filteredOptions.length) {
+
+                filteredOptions.forEach((option) => {
+                  if (feature[option.name] != 0) {
+                    matchedFilters[option.name] = true;
+                  }
+                })
+              } else {
+                feature.leafletObject.addTo(this.map);
+              }
+              if (Object.keys(matchedFilters).length == filteredOptions.length) {
+                filteredResults = [...filteredResults, feature];
+              }
+            }
+          });
+          filteredResults.map(feature => {
+            feature.leafletObject.addTo(this.map);
+          });
+          this.list = [...this.list,...filteredResults,];
+          console.log(this.list,'list')
+        },
+
+        onOptionChange(option,active) {
+          let optionResults = [];
+          const activeLayers = this.layers.filter(layer => layer.active);
+          activeLayers.map((activeLayer) => {
+            activeLayer.features.forEach(feature => {
+              feature.leafletObject.removeFrom(this.map);
+              const filteredOptions = this.options.filter(option => option.active);
+              const matchedFilters = {};
+              if (filteredOptions.length) {
+                filteredOptions.forEach((option) => {
+                  if (feature[option.name] != 0) {
+                    matchedFilters[option.name] = true;
+                  }
+                })
+              } else {
+                feature.leafletObject.addTo(this.map);
+              }
+              if (Object.keys(matchedFilters).length == filteredOptions.length) {
+                optionResults = [...optionResults, feature]
+              }
+            });
+          })
+          optionResults.map(feature => {
+            feature.leafletObject.addTo(this.map);
+          })
+          console.log(optionResults,"optionresults")
+          this.list = [...optionResults];
+          activeLayers.map(item => {
+            
+          console.log(item, "name")
+        })
+          console.log(active,option,"active");
+        },
+        initLayers() {
+          window.onFavIconClick = this.onFavIconClick;
+          this.layers.forEach((layer) => {
+            layer.features.forEach((feature, i) => {
+              const icon = L.icon({
+                iconUrl: `/img/${feature.icon}.svg?term=${i}`,
+                iconSize: [38, 95],
+                iconAnchor: [22, 94],
+                popupAnchor: [-3, -76],
+              });
+
+              var customPopup = `<img id="item-${i}" onclick='onFavIconClick(${layer.id}, ${i}, this)' src='/img/${feature.favourite ? 'favolite1.svg' : 'favolite2.svg'}' height='20px' width='20px'/>`;
+              feature.leafletObject = L.marker((feature.geocode), {
+                icon
+              })
+                .bindPopup(feature.name + ' ' + customPopup + "<br>" + feature.adress + "<br>" + feature.phone + "<br><a href='#" + feature.id + "'><button class='map-btn'>詳細</button></a>").on('popupopen', function (popup) {
+                  const name = JSON.parse(localStorage.getItem('name')) || '';
+                  let wishlist = name.length ? name.split(',') : [];
+
+                  const featureIndex = wishlist.includes(feature.name) ? i : null;
+                  document.getElementById('item-' + i).setAttribute('src', featureIndex ? '/img/favolite1.svg' : '/img/favolite2.svg');
+                });;
+            });
+          });
+        },
+        initMap() {
+          this.map = L.map('map').setView([35.45103, 136.73943], 13);
+          this.tileLayer = L.tileLayer(
+            'https://cartodb-basemaps-{s}.global.ssl.fastly.net/rastertiles/voyager/{z}/{x}/{y}.png', {
+              maxZoom: 18,
+              attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attribution">CARTO</a>',
+            }
+          );
+          this.tileLayer.addTo(this.map);
+        },
+        onFavIconClick(layerId, featureIndex, layer) {
+          const index = this.layers.findIndex(layer => layer.id == layerId);
+          const currentLayer = this.layers[index];
+          const currentFeature = currentLayer.features[featureIndex];
+
+          let updatedFeatures = [...currentLayer.features];
+          document.getElementById('item-' + featureIndex).setAttribute('src', !currentFeature.favourite ? 'img/favolite1.svg' : '/img/favolite2.svg');
+          var customPopup = `<img onclick='onFavIconClick(${layerId}, ${featureIndex}, this)' src='img/${!currentFeature.favourite ? 'favolite1.svg' : 'favolite2.svg'}' height='20px' width='20px'/>`;
+
+          const icon = L.icon({
+            iconUrl: `/img/${currentFeature.icon}.svg`,
+            iconSize: [38, 95],
+            iconAnchor: [22, 94],
+            popupAnchor: [-3, -76],
+          });
+
+          updatedFeatures[featureIndex] = {
+            ...updatedFeatures[featureIndex],
+            favourite: !updatedFeatures[featureIndex].favourite
+          };
+
+          let updatedLayers = [...this.layers];
+
+          updatedLayers[index] = {
+            ...updatedLayers[index],
+            features: updatedFeatures
+          };
+          const name = JSON.parse(localStorage.getItem('name')) || '';
+          let arr = name.length ? name.split(',') : [];
+
+          arr.includes(updatedFeatures[featureIndex].name) ?
+            arr = arr.filter(item => item != updatedFeatures[featureIndex].name) :
+            arr.push(updatedFeatures[featureIndex].name);
+
+          localStorage.setItem('name', JSON.stringify(arr.join()));
+
+          this.layers = updatedLayers;
+          currentFeature.leafletObject = L.marker((currentFeature.geocode), {
+            icon
+          }).bindPopup(currentFeature.name + ' ' + customPopup)
+        }
+      },
+    });
+  </script>
+</body>
+</html>
